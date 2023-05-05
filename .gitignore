@@ -8,3 +8,4 @@ checkpoints
 plots
 nuscenes*
 .DS_Store
+__pycache__
