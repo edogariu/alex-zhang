@@ -22,3 +22,50 @@ I coded up a whole bunch of stuff. Everything should actually be clean and polis
     - in `datasets.py` u can uncomment the thing to actually read through the dataset. it takes a while to load all the files, so i loaded them once and stored em in a `.npy` file to keep loading from. i recommend this :)
     - the images are in fairly high res. i downsampled to 64x64 for my lil experiment on the mac, but i think the full res is 640x480 or something
   
+
+
+#### also if u want code to inference a thingy to reconstruct, here it is
+
+    import matplotlib.pyplot as plt
+
+    import torch
+
+    from vae import Encoder, Decoder
+    from datasets import RGBDDataset
+    from ensemble import Ensemble
+    from utils import DEVICE
+
+    resolution = (64, 64)
+
+    model_args = {'appearance_latent_dim': 64,
+                  'structure_latent_dim': 64,
+                  'hidden_dims': [32, 64, 128, 256]}
+
+    dataset = RGBDDataset(resolution)
+    dataloader = dataset.get_dataloader('all', 1)
+
+    # make ensemble
+    models = {'RGB_appearance': Encoder(input_shape=[3, *resolution], latent_dim=model_args['appearance_latent_dim'], hidden_dims=model_args['hidden_dims']), 
+              'RGB_structure': Encoder(input_shape=[3, *resolution], latent_dim=model_args['structure_latent_dim'], hidden_dims=model_args['hidden_dims']), 
+              'DEPTH_structure': Encoder(input_shape=[1, *resolution], latent_dim=model_args['structure_latent_dim'], hidden_dims=model_args['hidden_dims'])}
+    models['RGB_decoder'] = Decoder(input_shape=[3, *resolution], 
+                                    latent_dim=model_args['appearance_latent_dim'] + model_args['structure_latent_dim'], 
+                                    encoder_conv_out_shape=models['RGB_appearance'].conv_out_shape, 
+                                    hidden_dims=model_args['hidden_dims'])
+    model = Ensemble(models, loss_weights=None).float().to(DEVICE)
+    model.load_checkpoint()
+
+    with torch.no_grad():
+        for x, in dataloader:
+            out = model.infer(x)
+            emb = torch.cat((out.RGB_appearance, out.RGB_structure), dim=-1)
+            rec = models['RGB_decoder'](emb)
+
+            x = (x.squeeze()[:3].permute(1, 2, 0).cpu().numpy() + 1) / 2
+            rec = (rec.squeeze().permute(1, 2, 0).cpu().numpy() + 1) / 2
+
+            fig, ax = plt.subplots(1, 2)
+            ax[0].imshow(x)
+            ax[1].imshow(rec)
+
+            break
