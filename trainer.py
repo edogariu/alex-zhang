@@ -181,15 +181,15 @@ class Trainer():
 
         k = np.array(list(self.train_losses.keys()))
         v = np.array(list(self.train_losses.values()))
-        np.save(os.path.join(TOP_DIR_NAME, + 'plots', 'train_losses.npy'), np.stack([k, v], axis=0))
+        np.save(os.path.join(TOP_DIR_NAME, 'plots', 'train_losses.npy'), np.stack([k, v], axis=0))
 
         k = np.array(list(self.val_losses.keys()))
         v = np.array(list(self.val_losses.values()))
-        np.save(os.path.join(TOP_DIR_NAME, + 'plots', 'val_losses.npy'), np.stack([k, v], axis=0))
+        np.save(os.path.join(TOP_DIR_NAME, 'plots', 'val_losses.npy'), np.stack([k, v], axis=0))
 
         k = np.array(list(self.val_errors.keys()))
         v = np.array(list(self.val_errors.values()))
-        np.save(os.path.join(TOP_DIR_NAME, + 'plots', 'val_errors.npy'), np.stack([k, v], axis=0))
+        np.save(os.path.join(TOP_DIR_NAME, 'plots', 'val_errors.npy'), np.stack([k, v], axis=0))
         
         print('\nTRAINING INFO: Done :)')
         
