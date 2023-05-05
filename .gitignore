@@ -7,3 +7,4 @@ data
 checkpoints
 plots
 nuscenes*
+.DS_Store
