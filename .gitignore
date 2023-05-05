@@ -1,0 +1,9 @@
+nuimages*
+.vscode
+.ipynb_checkpoints
+env
+pyvenv*
+data
+checkpoints
+plots
+nuscenes*
