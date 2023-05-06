@@ -27,8 +27,11 @@ class RGBDDataset:
             
         #     idxs = np.sort(np.unique([f.split('-')[0] for f in os.listdir(scene_dir_path)]))  # get unique indices for each image
         #     for idx in idxs:
-        #         color = np.array(Image.open(os.path.join(scene_dir_path, '{}-color.png'.format(idx))).resize(resolution))  # load color image
-        #         depth = np.expand_dims(np.array(Image.open(os.path.join(scene_dir_path, '{}-depth.png'.format(idx))).resize(resolution)), axis=-1)  # load depth image
+        #         color_path = os.path.join(scene_dir_path, '{}-color.png'.format(idx))
+        #         depth_path = os.path.join(scene_dir_path, '{}-depth.png'.format(idx))
+        #         if not os.path.isfile(color_path) or not os.path.isfile(depth_path): continue
+        #         color = np.array(Image.open(color_path).resize(resolution))  # load color image
+        #         depth = np.expand_dims(np.array(Image.open(depth_path).resize(resolution)), axis=-1)  # load depth image
         #         img = np.concatenate((color, depth), axis=-1)  # concat the images
         #         rgbd_images.append(img)
         #         scene_labels.append(scene_label)
@@ -46,6 +49,8 @@ class RGBDDataset:
         # # save the dataset for future loading
         # np.save(os.path.join(filepath, 'rgbd_images_{}.npy'.format(resolution)), rgbd_images)
         # np.save(os.path.join(filepath, 'scene_labels.npy'), scene_labels)
+        # print('DATASET INFO: saved dataset of {} datapoints as .npy files in {}'.format(len(rgbd_images), filepath))
+        # exit(0)
         
         # load the dataset
         rgbd_images = np.load(os.path.join(filepath, 'rgbd_images_{}.npy'.format(resolution)))
@@ -55,7 +60,7 @@ class RGBDDataset:
         # store the images as a tensor, to allow for the creation of dataloaders and such
         self.rgbd_images = torch.from_numpy(rgbd_images).float().permute(0, 3, 1, 2)  # NHWC -> NCHW
         self.scene_labels = scene_labels
-        
+
         print('DATASET INFO: Loaded {} datapoints!'.format(len(self.rgbd_images)))
         
     def __len__(self) -> int:

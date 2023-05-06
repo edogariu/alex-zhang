@@ -18,19 +18,19 @@ if __name__ == '__main__':
     
     dataset_args = {'batch_size': 64}
     
-    trainer_args = {'initial_lr': 0.001,
-                    'lr_decay_period': 10,
-                    'lr_decay_gamma': 0.7,
-                    'weight_decay': 0.}
+    trainer_args = {'initial_lr': 0.0012,
+                    'lr_decay_period': 15,
+                    'lr_decay_gamma': 0.8,
+                    'weight_decay': 1e-5}
     
     train_args = {'num_epochs': 400,
-                  'eval_every': 2,
+                  'eval_every': 3,
                   'patience': 5,
                   'num_tries': 20}    
     
-    loss_weights = {'kl_weight': 0.00025,
-                    'contrastive_weight': 0.,
-                    'anticontrastive_weight': 0.}
+    loss_weights = {'kl_weight': 0.00025,  # 0.00025
+                    'contrastive_weight': 0.02,  # 0.02
+                    'anticontrastive_weight': 0.00015}  # 0.00015
     
     # ----------------------------------------------------------------------------------------------
     # ----------------------------------------------------------------------------------------------

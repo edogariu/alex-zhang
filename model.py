@@ -34,6 +34,13 @@ class ModelBase():
         self._lr_schedulers = {}
         
         self._checkpoint_folder = checkpoint_folder
+
+        if not os.path.isdir(self._checkpoint_folder):
+            print('No existing folder at {}! I\'m gonna go ahead and make one :)'.format(self._checkpoint_folder))
+            os.mkdir(self._checkpoint_folder)
+            os.mkdir(os.path.join(self._checkpoint_folder, 'models'))
+            os.mkdir(os.path.join(self._checkpoint_folder, 'optimizers'))
+
         
     def train(self):
         """
@@ -151,6 +158,8 @@ class ModelBase():
         ------------
         torch.Tensor
             loss
+        float
+            error
         """
         pass
     

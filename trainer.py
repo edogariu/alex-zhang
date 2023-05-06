@@ -8,6 +8,8 @@ import torch.utils.data as D
 
 from model import ModelBase, TOP_DIR_NAME
 
+PLOTS_FOLDER = os.path.join(TOP_DIR_NAME, 'plots')
+
 class Trainer():
     def __init__(self, 
                  model: ModelBase, 
@@ -37,6 +39,10 @@ class Trainer():
         weight_decay : Union[float, Dict[str, float]]
             l2 regularization for each model
         """
+
+        if not os.path.isdir(PLOTS_FOLDER):
+            print('No existing plots folder at {}! I\'m gonna go ahead and make one :)'.format(PLOTS_FOLDER))
+            os.mkdir(PLOTS_FOLDER)
         
         self.model = model
         self.train_dataloader = train_dataloader
@@ -53,6 +59,7 @@ class Trainer():
 
         # prep statistics
         self.train_losses = {}
+        self.train_errors = {}
         self.val_losses = {}
         self.val_errors = {}
         self.best_val_loss = (0, float('inf'))  # epoch num and value of best validation loss
@@ -65,22 +72,26 @@ class Trainer():
         print('-------------------------------------------------------------')
         
         avg_loss = 0.
+        avg_err = 0.
         i = 0
         pbar = tqdm.tqdm(self.train_dataloader)
         for x, in pbar:
             x = x.to(self.device)
             self.model.zero_grad()
-            loss = self.model.loss(x)
+            loss, err = self.model.loss(x)
             loss.backward()
             self.model.step_optimizers()
             loss = loss.item()
             avg_loss += loss
-            pbar.set_postfix({'batch loss': loss})
+            avg_err += err
+            pbar.set_postfix({'error': err, 'loss': loss})
             i += 1
             
         avg_loss /= i
+        avg_err /= i
         self.train_losses[epoch_num] = avg_loss
-        print('TRAINING INFO: avg batch training loss for epoch {}: {}'.format(epoch_num, round(avg_loss, 6)))
+        self.train_errors[epoch_num] = avg_err
+        print('TRAINING INFO: avg train error and loss for epoch {}: {}        {}'.format(epoch_num, round(avg_err, 6), round(avg_loss, 6)))
         self.model.step_lr_schedulers()
         pass
 
@@ -101,14 +112,14 @@ class Trainer():
                 err, loss = self.model.eval_err(x)
                 avg_err += err
                 avg_loss += loss
-                pbar.set_postfix({'batch loss': loss})
+                pbar.set_postfix({'error': err, 'loss': loss})
                 i += 1
 
         avg_err /= i
         avg_loss /= i
         self.val_errors[epoch_num] = avg_err
         self.val_losses[epoch_num] = avg_loss
-        print('TRAINING INFO: avg validation error and batch loss for epoch {}: {}       {}'.format(epoch_num, round(avg_err, 6), round(avg_loss, 6)))
+        print('TRAINING INFO: avg validation error and loss for epoch {}: {}        {}'.format(epoch_num, round(avg_err, 6), round(avg_loss, 6)))
         return avg_err  # this is the metric we apply the patience algorithm on
 
     def train(self, 
@@ -181,15 +192,19 @@ class Trainer():
 
         k = np.array(list(self.train_losses.keys()))
         v = np.array(list(self.train_losses.values()))
-        np.save(os.path.join(TOP_DIR_NAME, 'plots', 'train_losses.npy'), np.stack([k, v], axis=0))
+        np.save(os.path.join(PLOTS_FOLDER, 'train_losses.npy'), np.stack([k, v], axis=0))
+
+        k = np.array(list(self.train_errors.keys()))
+        v = np.array(list(self.train_errors.values()))
+        np.save(os.path.join(PLOTS_FOLDER, 'train_errors.npy'), np.stack([k, v], axis=0))
 
         k = np.array(list(self.val_losses.keys()))
         v = np.array(list(self.val_losses.values()))
-        np.save(os.path.join(TOP_DIR_NAME, 'plots', 'val_losses.npy'), np.stack([k, v], axis=0))
+        np.save(os.path.join(PLOTS_FOLDER, 'val_losses.npy'), np.stack([k, v], axis=0))
 
         k = np.array(list(self.val_errors.keys()))
         v = np.array(list(self.val_errors.values()))
-        np.save(os.path.join(TOP_DIR_NAME, 'plots', 'val_errors.npy'), np.stack([k, v], axis=0))
+        np.save(os.path.join(PLOTS_FOLDER, 'val_errors.npy'), np.stack([k, v], axis=0))
         
         print('\nTRAINING INFO: Done :)')
         

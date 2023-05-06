@@ -67,7 +67,7 @@ class Ensemble(ModelBase):
             return self._embedding(rgb_appearance, rgb_structure, depth_structure)
     
     def loss(self, 
-             x: torch.Tensor) -> torch.Tensor:
+             x: torch.Tensor) -> Tuple[torch.Tensor]:
         """
         Loss for a batch of training examples. 
         This is where we choose to define the loss, which is what the training process attempts to minimize. This must be differentiable.
@@ -87,6 +87,8 @@ class Ensemble(ModelBase):
         ------------
         torch.Tensor
             compound loss
+        float
+            error
         """
 
         rgb, depth = self._split_data(x)
@@ -101,17 +103,23 @@ class Ensemble(ModelBase):
         reconstruction_loss = losses.reconstruction_loss(reconstruction, rgb)
         
         # kl divergence loss
-        kl_divergence_loss = self._RGB_appearance.kld_loss + self._RGB_structure.kld_loss + self._DEPTH_structure.kld_loss if self.loss_weights['kl_weight'] > 0 else 0
+        kl_divergence_loss = self._RGB_appearance.kld_loss + self._RGB_structure.kld_loss + self._DEPTH_structure.kld_loss if self.loss_weights['kl_weight'] > 0 else torch.tensor(0).to(x.device)
         
         # contrastive losses
-        contrastive_loss = losses.contrastive_loss(rgb_structure, depth_structure) if self.loss_weights['contrastive_weight'] > 0 else 0
-        anticontrastive_loss = losses.anticontrastive_loss(rgb_appearance, depth_structure) if self.loss_weights['anticontrastive_weight'] > 0 else 0
+        contrastive_loss = losses.contrastive_loss(rgb_structure, depth_structure) if self.loss_weights['contrastive_weight'] > 0 else torch.tensor(0).to(x.device)
+        anticontrastive_loss = losses.anticontrastive_loss(rgb_appearance, depth_structure) if self.loss_weights['anticontrastive_weight'] > 0 else torch.tensor(0).to(x.device)
         
+        # print(reconstruction_loss.item(), 
+        #       kl_divergence_loss.item() * self.loss_weights['kl_weight'],
+        #       contrastive_loss.item() * self.loss_weights['contrastive_weight'], 
+        #       anticontrastive_loss.item() * self.loss_weights['anticontrastive_weight'])
+
         loss = reconstruction_loss + \
                kl_divergence_loss * self.loss_weights['kl_weight'] + \
                contrastive_loss * self.loss_weights['contrastive_weight'] + \
                anticontrastive_loss * self.loss_weights['anticontrastive_weight']
-        return loss
+        
+        return loss, reconstruction_loss.item()
     
     def eval_err(self, 
                  x: torch.Tensor,
@@ -133,9 +141,8 @@ class Ensemble(ModelBase):
             loss
         """
         with torch.no_grad():
-            loss = self.loss(x, **kwargs).item()
-            error = loss
-            return error, loss
+            loss, error = self.loss(x, **kwargs)
+            return error, loss.item()
     
     def _split_data(self,
                     x: torch.Tensor) -> Tuple[torch.Tensor]:
