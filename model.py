@@ -199,11 +199,11 @@ class ModelBase():
             
             assert os.path.isfile(model_filename)
 
-            self._models[k].load_state_dict(torch.load(model_filename), strict=True)
+            self._models[k].load_state_dict(torch.load(model_filename, map_location='cpu'), strict=True)
             if os.path.isfile(opt_filename):
                 if k not in self._optimizers:
                     self._optimizers[k] = OPTIMIZER(self._models[k].parameters(), lr=0, weight_decay=0)
-                self._optimizers[k].load_state_dict(torch.load(opt_filename))
+                self._optimizers[k].load_state_dict(torch.load(opt_filename, map_location='cpu'))
         return self
     
     def save_checkpoint(self):
