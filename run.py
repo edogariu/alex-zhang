@@ -10,11 +10,11 @@ if __name__ == '__main__':
     # --------------------------------- HYPERPARAMETERS --------------------------------------------
     # ----------------------------------------------------------------------------------------------
     
-    resolution = (64, 64)
+    resolution = (128, 128)
     
-    model_args = {'appearance_latent_dim': 64,
-                  'structure_latent_dim': 64,
-                  'hidden_dims': [32, 64, 128, 256]}
+    model_args = {'appearance_latent_dim': 128,
+                  'structure_latent_dim': 128,
+                  'hidden_dims': [32, 64, 128, 256, 512]}
     
     dataset_args = {'batch_size': 64}
     
@@ -28,7 +28,7 @@ if __name__ == '__main__':
                   'patience': 5,
                   'num_tries': 20}    
     
-    loss_weights = {'kl_weight': 0.,
+    loss_weights = {'kl_weight': 0.00025,
                     'contrastive_weight': 0.,
                     'anticontrastive_weight': 0.}
     

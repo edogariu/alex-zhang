@@ -4,7 +4,7 @@ nuimages*
 env
 pyvenv*
 data
-checkpoints
+checkpoints*
 plots
 nuscenes*
 .DS_Store
