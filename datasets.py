@@ -63,7 +63,7 @@ class RadiateDataset:
 
         assert os.path.isdir(os.path.join(filepath, 'config'))
         self.label_to_int = {'city': 0, 'fog': 1, 'night': 2, 'junction': 3, 'motorway': 4, 'rain': 5, 'snow': 6}
-        self.int_to_label = ['city', 'fog', 'night', 'junction', 'motorway', 'rain', 'snow']
+        self.int_to_label = list(self.label_to_int.keys())
         
         print('DATASET INFO: Loading the RADIATE dataset at resolution {}'.format(resolution))
         
@@ -170,6 +170,7 @@ class RadiateDataset:
                 rgbd = np.concatenate([rgb, proj_lidar], axis=-1)
                 rgbd = crop(rgbd, resolution)
                 rgbd_images.append(rgbd)
+                scene_labels.append(dir.split('_')[0])
                 
             if 'camera_left_rect' in output.keys() and 'proj_lidar_left' in output.keys():
                 rgb = output['camera_left_rect']
