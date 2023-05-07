@@ -132,7 +132,7 @@ class RadiateDataset:
             
         else:  # load the dataset
             rgbd_images = np.load(os.path.join(filepath, 'rgbd_images_{}_{}.npy'.format(resolution, n_data)))
-            scene_labels = np.load(os.path.join(filepath, 'scene_labels{}_{}.npy').format(resolution, n_data))
+            scene_labels = np.load(os.path.join(filepath, 'scene_labels_{}_{}.npy').format(resolution, n_data))
             scene_labels = np.array([self.label_to_int[s] for s in scene_labels])
             
         # # inspect whats goin on
