@@ -21,11 +21,12 @@ class Ensemble(ModelBase):
     """
     def __init__(self, 
                  models: Union[nn.Module, Dict[str, nn.Module]],
-                 loss_weights: Dict[str, float],
-                 model_name = 'Appearance + Structure Embedding Framework'):
+                 loss_weights: Dict[str, float] = {},
+                 model_name = 'Appearance + Structure Embedding Framework',
+                 **kwargs):
         
         assert {'RGB_appearance', 'RGB_structure', 'DEPTH_structure', 'RGB_decoder'} <= models.keys(), 'must have the necessary encoders and decoders'
-        super(Ensemble, self).__init__(models, model_name)
+        super(Ensemble, self).__init__(models, model_name, **kwargs)
         
         self._RGB_appearance = models['RGB_appearance']
         self._RGB_structure = models['RGB_structure']
@@ -41,7 +42,9 @@ class Ensemble(ModelBase):
         
         self._embedding = namedtuple('Embedding', ['RGB_appearance', 'RGB_structure', 'DEPTH_structure'])
         
-        self.loss_weights = loss_weights
+        if len(loss_weights) == 0:
+            print('MODEL INFO: no loss weights were provided. i cant calculate the loss but i will do the best i can :)')
+        self._loss_weights = loss_weights
         
     def infer(self, 
               x: torch.Tensor) -> NamedTuple:
@@ -90,6 +93,7 @@ class Ensemble(ModelBase):
         float
             error
         """
+        assert len(self._loss_weights) != 0, 'can\'t calculate loss without weights!'
 
         rgb, depth = self._split_data(x)
         
@@ -103,21 +107,21 @@ class Ensemble(ModelBase):
         reconstruction_loss = losses.reconstruction_loss(reconstruction, rgb)
         
         # kl divergence loss
-        kl_divergence_loss = self._RGB_appearance.kld_loss + self._RGB_structure.kld_loss + self._DEPTH_structure.kld_loss if self.loss_weights['kl_weight'] > 0 else torch.tensor(0).to(x.device)
+        kl_divergence_loss = self._RGB_appearance.kld_loss + self._RGB_structure.kld_loss + self._DEPTH_structure.kld_loss if self._loss_weights['kl_weight'] > 0 else torch.tensor(0).to(x.device)
         
         # contrastive losses
-        contrastive_loss = losses.contrastive_loss(rgb_structure, depth_structure) if self.loss_weights['contrastive_weight'] > 0 else torch.tensor(0).to(x.device)
-        anticontrastive_loss = losses.anticontrastive_loss(rgb_appearance, depth_structure) if self.loss_weights['anticontrastive_weight'] > 0 else torch.tensor(0).to(x.device)
+        contrastive_loss = losses.contrastive_loss(rgb_structure, depth_structure) if self._loss_weights['contrastive_weight'] > 0 else torch.tensor(0).to(x.device)
+        anticontrastive_loss = losses.anticontrastive_loss(rgb_appearance, depth_structure) if self._loss_weights['anticontrastive_weight'] > 0 else torch.tensor(0).to(x.device)
         
         # print(reconstruction_loss.item(), 
-        #       kl_divergence_loss.item() * self.loss_weights['kl_weight'],
-        #       contrastive_loss.item() * self.loss_weights['contrastive_weight'], 
-        #       anticontrastive_loss.item() * self.loss_weights['anticontrastive_weight'])
+        #       kl_divergence_loss.item() * self._loss_weights['kl_weight'],
+        #       contrastive_loss.item() * self._loss_weights['contrastive_weight'], 
+        #       anticontrastive_loss.item() * self._loss_weights['anticontrastive_weight'])
 
         loss = reconstruction_loss + \
-               kl_divergence_loss * self.loss_weights['kl_weight'] + \
-               contrastive_loss * self.loss_weights['contrastive_weight'] + \
-               anticontrastive_loss * self.loss_weights['anticontrastive_weight']
+               kl_divergence_loss * self._loss_weights['kl_weight'] + \
+               contrastive_loss * self._loss_weights['contrastive_weight'] + \
+               anticontrastive_loss * self._loss_weights['anticontrastive_weight']
         
         return loss, reconstruction_loss.item()
     
@@ -140,6 +144,8 @@ class Ensemble(ModelBase):
         float
             loss
         """
+        assert len(self._loss_weights) != 0, 'can\'t calculate loss without weights!'
+        
         with torch.no_grad():
             loss, error = self.loss(x, **kwargs)
             return error, loss.item()

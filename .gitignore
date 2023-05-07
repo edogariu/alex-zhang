@@ -1,11 +1,11 @@
 nuimages*
 .vscode
-.ipynb_checkpoints
 env
 pyvenv*
 data
-checkpoints*
+*checkpoints*
 plots
 nuscenes*
 .DS_Store
 __pycache__
+data.ipynb

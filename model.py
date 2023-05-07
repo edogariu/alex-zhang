@@ -192,10 +192,16 @@ class ModelBase():
             s += '\t{} with {} parameters\n'.format(k, count_parameters(self._models[k]))
         return s
     
-    def load_checkpoint(self):
+    def load_checkpoint(self,
+                        checkpoint_folder: str=None):
+        if not checkpoint_folder:
+            checkpoint_folder = self._checkpoint_folder
+        print('MODEL INFO: loading checkpoint from {}'.format(checkpoint_folder))
+        assert os.path.isdir(checkpoint_folder), '{} ain\'t a folder buddy'.format(checkpoint_folder)
+        
         for k in self._models:
-            model_filename = os.path.join(self._checkpoint_folder, 'models', '{}.pth'.format(k))
-            opt_filename = os.path.join(self._checkpoint_folder, 'optimizers', '{}.pth'.format(k))
+            model_filename = os.path.join(checkpoint_folder, 'models', '{}.pth'.format(k))
+            opt_filename = os.path.join(checkpoint_folder, 'optimizers', '{}.pth'.format(k))
             
             assert os.path.isfile(model_filename)
 
@@ -206,10 +212,16 @@ class ModelBase():
                 self._optimizers[k].load_state_dict(torch.load(opt_filename, map_location='cpu'))
         return self
     
-    def save_checkpoint(self):
+    def save_checkpoint(self,
+                        checkpoint_folder: str=None):
+        if not checkpoint_folder:
+            checkpoint_folder = self._checkpoint_folder
+        print('MODEL INFO: saving checkpoint to {}'.format(checkpoint_folder))
+        assert os.path.isdir(checkpoint_folder), '{} ain\'t a folder buddy'.format(checkpoint_folder)
+        
         for k in self._models:
-            model_filename = os.path.join(self._checkpoint_folder, 'models', '{}.pth'.format(k))
-            opt_filename = os.path.join(self._checkpoint_folder, 'optimizers', '{}.pth'.format(k))
+            model_filename = os.path.join(checkpoint_folder, 'models', '{}.pth'.format(k))
+            opt_filename = os.path.join(checkpoint_folder, 'optimizers', '{}.pth'.format(k))
 
             torch.save(self._models[k].state_dict(), model_filename)
             if k in self._optimizers:

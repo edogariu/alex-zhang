@@ -8,8 +8,8 @@ import torch.nn as nn
 TOP_DIR_NAME = os.path.abspath('.')
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 SPLIT_INTERVALS = {'train': 0.75,
-                   'val': 0.2,
-                   'test': 0.05}
+                   'val': 0.225,
+                   'test': 0.025}
 
 def count_parameters(model: nn.Module) -> int:
     return sum(p.numel() for p in model.parameters())

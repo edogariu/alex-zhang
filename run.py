@@ -1,4 +1,4 @@
-from datasets import RGBDDataset
+from datasets import RGBDDataset, RadiateDataset
 from vae import Encoder, Decoder
 from ensemble import Ensemble
 from trainer import Trainer
@@ -9,8 +9,9 @@ if __name__ == '__main__':
     # ----------------------------------------------------------------------------------------------
     # --------------------------------- HYPERPARAMETERS --------------------------------------------
     # ----------------------------------------------------------------------------------------------
-    
+        
     resolution = (128, 128)
+    dataset = RadiateDataset(resolution, n_data=9000, use_multiprocessing=True)
     
     model_args = {'appearance_latent_dim': 128,
                   'structure_latent_dim': 128,
@@ -19,7 +20,7 @@ if __name__ == '__main__':
     dataset_args = {'batch_size': 64}
     
     trainer_args = {'initial_lr': 0.0012,
-                    'lr_decay_period': 15,
+                    'lr_decay_period': 50,
                     'lr_decay_gamma': 0.8,
                     'weight_decay': 1e-5}
     
@@ -28,16 +29,15 @@ if __name__ == '__main__':
                   'patience': 5,
                   'num_tries': 20}    
     
-    loss_weights = {'kl_weight': 0.00025,  # 0.00025
+    loss_weights = {'kl_weight': 0.00005,  # 0.00005
                     'contrastive_weight': 0.02,  # 0.02
-                    'anticontrastive_weight': 0.00015}  # 0.00015
+                    'anticontrastive_weight': 0.0005}  # 0.0005
     
     # ----------------------------------------------------------------------------------------------
     # ----------------------------------------------------------------------------------------------
     # ----------------------------------------------------------------------------------------------
     
-    # make dataset
-    dataset = RGBDDataset(resolution)
+    # make dataloaders
     train_dataloader = dataset.get_dataloader('train', **dataset_args)
     val_dataloader = dataset.get_dataloader('val', **dataset_args)
     test_dataloader = dataset.get_dataloader('test', **dataset_args)
