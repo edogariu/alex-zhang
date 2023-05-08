@@ -12,6 +12,44 @@ The following is HEAVILY INSPIRED by the implementations in https://github.com/A
 (but i think i did some things better such as not restricting to 64x64 hehe)
 """
 
+class EncoderEmbedding(nn.Module):
+    def __init__(self,
+                 latent_dim: int,
+                 MAX_IMAGES: int = 10000):
+        """
+        creates encoder that maps input to embedding. 
+
+        Parameters
+        ----------
+        latent_dim : int
+            latent dimension to encode into
+        MAX_IMAGES: int
+            max number of images to decode into
+        """
+        super(EncoderEmbedding, self).__init__()
+        
+        self.latent_dim = latent_dim
+        self.device = DEVICE
+
+        # initialize latent embeddings per image
+        self.MAX_IMAGES = MAX_IMAGES
+        
+        self.encoder_appearance = nn.Embedding(MAX_IMAGES, self.latent_dim)
+        self.encoder_structure = nn.Embedding(MAX_IMAGES, self.latent_dim)
+
+    def forward(self, 
+                input: torch.Tensor) -> Tuple[torch.Tensor]:
+        """
+        Encodes the input by passing through the encoder network
+        and returns the latent codes.
+        Expects batch of indices corresponding to unique image indices.
+        """
+        appearance = self.encoder_appearance(input)
+        structure = self.encoder_structure(input)
+        
+        return appearance, structure
+    
+
 class Encoder(nn.Module):
     def __init__(self,
                  input_shape: Tuple[int],

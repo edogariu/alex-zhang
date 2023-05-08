@@ -44,6 +44,8 @@ class Ensemble(ModelBase):
         
         if len(loss_weights) == 0:
             print('MODEL INFO: no loss weights were provided. i cant calculate the loss but i will do the best i can :)')
+        else:
+            print('MODEL INFO: loss weights dict:', loss_weights)
         self._loss_weights = loss_weights
         
     def infer(self, 
@@ -123,6 +125,7 @@ class Ensemble(ModelBase):
                contrastive_loss * self._loss_weights['contrastive_weight'] + \
                anticontrastive_loss * self._loss_weights['anticontrastive_weight']
         
+        # print('kl: {}, con: {}, anticon: {}'.format(kl_divergence_loss, contrastive_loss, anticontrastive_loss))
         return loss, reconstruction_loss.item()
     
     def eval_err(self, 

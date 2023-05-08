@@ -18,7 +18,8 @@ class Trainer():
                  initial_lr: Union[float, Dict[str, float]], 
                  lr_decay_period: Union[int, Dict[str, int]], 
                  lr_decay_gamma: Union[float, Dict[str, float]], 
-                 weight_decay: Union[float, Dict[str, float]]):
+                 weight_decay: Union[float, Dict[str, float]],
+                 multi_load: bool = False):
         """
         Trainer object to train a model. Uses given optimizer, StepLR learning rate scheduler, and a patience algorithm.
         
@@ -38,12 +39,15 @@ class Trainer():
             size of each decay step for each model
         weight_decay : Union[float, Dict[str, float]]
             l2 regularization for each model
+        multi_load: bool
+            if dataloader is a list. This is just a stupid hack I need to work for now.
         """
 
         if not os.path.isdir(PLOTS_FOLDER):
             print('No existing plots folder at {}! I\'m gonna go ahead and make one :)'.format(PLOTS_FOLDER))
             os.mkdir(PLOTS_FOLDER)
         
+        self.multi_load = multi_load
         self.model = model
         self.train_dataloader = train_dataloader
         self.val_dataloader = val_dataloader
@@ -71,27 +75,49 @@ class Trainer():
         print('------------------  TRAIN - EPOCH NUM {}  -------------------'.format(epoch_num))
         print('-------------------------------------------------------------')
         
+        loss_history = []
         avg_loss = 0.
         avg_err = 0.
         i = 0
         pbar = tqdm.tqdm(self.train_dataloader)
-        for x, in pbar:
-            x = x.to(self.device)
-            self.model.zero_grad()
-            loss, err = self.model.loss(x)
-            loss.backward()
-            self.model.step_optimizers()
-            loss = loss.item()
-            avg_loss += loss
-            avg_err += err
-            pbar.set_postfix({'error': err, 'loss': loss})
-            i += 1
+        
+        if self.multi_load:
+            for x in pbar:
+                for i in range(len(x)):
+                    x[i] = x[i].to(self.device)
+                self.model.zero_grad()
+                loss, err = self.model.loss(x[0], x[1]) # lol this is not modular
+                loss.backward()
+                self.model.step_optimizers()
+                loss = loss.item()
+                loss_history.append((loss, err))
+                avg_loss += loss
+                avg_err += err
+                pbar.set_postfix({'error': err, 'loss': loss})
+                i += 1
+        else:
+            for x, in pbar:
+                x = x.to(self.device)
+                self.model.zero_grad()
+                loss, err = self.model.loss(x)
+                loss.backward()
+                self.model.step_optimizers()
+                loss = loss.item()
+                loss_history.append((loss, err))
+                avg_loss += loss
+                avg_err += err
+                pbar.set_postfix({'error': err, 'loss': loss})
+                i += 1
             
         avg_loss /= i
         avg_err /= i
         self.train_losses[epoch_num] = avg_loss
         self.train_errors[epoch_num] = avg_err
-        print('TRAINING INFO: avg train error and loss for epoch {}: {}        {}'.format(epoch_num, round(avg_err, 6), round(avg_loss, 6)))
+        
+        # print('TRAINING INFO: Other statistics. i: {}, '.format(i))
+        # print('TRAINING INFO: Loss,err history:', loss_history)
+        print()
+        print('TRAINING INFO: Epoch {}. Avg train error: {}, Avg train loss {}'.format(epoch_num, round(avg_err, 6), round(avg_loss, 6)))
         self.model.step_lr_schedulers()
         pass
 
@@ -107,19 +133,29 @@ class Trainer():
         i = 0
         with torch.no_grad():
             pbar = tqdm.tqdm(self.val_dataloader)
-            for x, in pbar:
-                x = x.to(self.device)
-                err, loss = self.model.eval_err(x)
-                avg_err += err
-                avg_loss += loss
-                pbar.set_postfix({'error': err, 'loss': loss})
-                i += 1
+            if self.multi_load:
+                for x in pbar:
+                    for i in range(len(x)):
+                        x[i] = x[i].to(self.device)
+                    err, loss = self.model.eval_err(x[0], x[1])
+                    avg_err += err
+                    avg_loss += loss
+                    pbar.set_postfix({'error': err, 'loss': loss})
+                    i += 1
+            else:
+                for x, in pbar:
+                    x = x.to(self.device)
+                    err, loss = self.model.eval_err(x)
+                    avg_err += err
+                    avg_loss += loss
+                    pbar.set_postfix({'error': err, 'loss': loss})
+                    i += 1
 
         avg_err /= i
         avg_loss /= i
         self.val_errors[epoch_num] = avg_err
         self.val_losses[epoch_num] = avg_loss
-        print('TRAINING INFO: avg validation error and loss for epoch {}: {}        {}'.format(epoch_num, round(avg_err, 6), round(avg_loss, 6)))
+        print('VALIDATION INFO: Epoch {}. Avg dev error: {}, Avg dev loss {}'.format(epoch_num, round(avg_err, 6), round(avg_loss, 6)))
         return avg_err  # this is the metric we apply the patience algorithm on
 
     def train(self, 

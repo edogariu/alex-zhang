@@ -59,7 +59,7 @@ class RadiateDataset:
                  resolution: Tuple[int],
                  filepath: str=os.path.join(TOP_DIR_NAME, 'data', 'radiate'),
                  n_data = 10000,
-                 use_multiprocessing: bool=True):
+                 use_multiprocessing: bool=True,):
 
         assert os.path.isdir(os.path.join(filepath, 'config'))
         self.label_to_int = {'city': 0, 'fog': 1, 'night': 2, 'junction': 3, 'motorway': 4, 'rain': 5, 'snow': 6}
@@ -117,6 +117,7 @@ class RadiateDataset:
             
             rgbd_images = np.stack(rgbd_images)
             scene_labels = np.array(scene_labels)
+            scene_ids = np.array([i for i in range(rgbd_images.shape[0])])
             
             # normalize the images -- RGB between -1 and 1, and depth between -1 and 1 (ish)
             rgbd_images = rgbd_images.astype(float)
@@ -134,6 +135,7 @@ class RadiateDataset:
             rgbd_images = np.load(os.path.join(filepath, 'rgbd_images_{}_{}.npy'.format(resolution, n_data)))
             scene_labels = np.load(os.path.join(filepath, 'scene_labels_{}_{}.npy').format(resolution, n_data))
             scene_labels = np.array([self.label_to_int[s] for s in scene_labels])
+            scene_ids = np.array([i for i in range(rgbd_images.shape[0])])
             
         # # inspect whats goin on
         # import matplotlib.pyplot as plt; 
@@ -146,8 +148,10 @@ class RadiateDataset:
         # store the images as a tensor, to allow for the creation of dataloaders and such
         self.rgbd_images = torch.from_numpy(rgbd_images).float().permute(0, 3, 1, 2)  # NHWC -> NCHW
         self.scene_labels = torch.from_numpy(scene_labels.astype(int)).long()
+        self.scene_ids = torch.from_numpy(scene_ids.astype(int)).long()
 
         print('DATASET INFO: Loaded {} datapoints!'.format(len(self)))
+        print('DATASET INFO: IDS:', self.scene_ids)
         
     def _load_dir(self, filepath: str, dir: str, n: int, resolution: Tuple[int], using_multiprocessing: bool):
         if using_multiprocessing: global counter
@@ -195,7 +199,8 @@ class RadiateDataset:
                        batch_size: int,
                        shuffle: bool=True,
                        drop_last: bool=True,
-                       include_scene_labels: bool=False):
+                       include_scene_labels: bool=False,
+                       include_indices: bool=False):
         
         assert split in ['train', 'val', 'test', 'all']
         
@@ -211,11 +216,17 @@ class RadiateDataset:
         np.random.seed()
         
         rgbd_images = self.rgbd_images[idxs]
-        if not include_scene_labels: 
-            return D.DataLoader(D.TensorDataset(rgbd_images), batch_size=batch_size, shuffle=shuffle, drop_last=drop_last)
-        else:
+        
+        load = [rgbd_images]
+        if include_scene_labels:
             scene_labels = self.scene_labels[idxs]
-            return D.DataLoader(D.TensorDataset(rgbd_images, scene_labels), batch_size=batch_size, shuffle=shuffle, drop_last=drop_last)
+            load.append(scene_labels)
+        if include_indices:
+            scene_ids = self.scene_ids[idxs]
+            load.append(scene_ids)
+        
+        return D.DataLoader(D.TensorDataset(*load), batch_size=batch_size, shuffle=shuffle, drop_last=drop_last)
+        
 
 class RGBDDataset:
     def __init__(self,

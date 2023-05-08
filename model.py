@@ -127,8 +127,7 @@ class ModelBase():
             lr_scheduler.step()
     
     @abstractmethod
-    def infer(self, 
-              x: torch.Tensor):
+    def infer(self):
         """
         Parameters
         ----------
@@ -143,7 +142,7 @@ class ModelBase():
     
     @abstractmethod
     def loss(self, 
-             x: torch.Tensor):
+             x):
         """
         Loss for a batch of training examples. 
         This is where we choose to define the loss, which is what the training process attempts to minimize. This must be differentiable.
@@ -165,7 +164,7 @@ class ModelBase():
     
     @abstractmethod
     def eval_err(self, 
-                 x: torch.Tensor):
+                 x):
         """
         Error for a batch of training examples. 
         This is where we choose to define the error, which is what we want the model to ultimately do best at. This doesn't need to be differentiable.
